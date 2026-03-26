@@ -36,8 +36,5 @@ package xet
 #cgo linux   LDFLAGS: -ldl -lm -lpthread -lrt
 #cgo darwin  LDFLAGS: -framework Security -framework CoreFoundation -framework IOKit -framework SystemConfiguration
 #cgo windows LDFLAGS: -lws2_32 -luserenv -lbcrypt -lntdll
-
-// Suppress linker warnings (e.g. "directory not found for option '-L...'").
-#cgo darwin LDFLAGS: -Wl,-w
 */
 import "C"
