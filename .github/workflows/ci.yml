@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.os }}/${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux
+          - os: linux
+            arch: amd64
+            runner: ubuntu-latest
+            rust: stable
+          - os: linux
+            arch: arm64
+            runner: ubuntu-24.04-arm
+            rust: stable
+
+          # macOS
+          - os: darwin
+            arch: amd64
+            runner: macos-26-intel
+            rust: stable
+          - os: darwin
+            arch: arm64
+            runner: macos-26
+            rust: stable
+
+          # Windows — use the GNU Rust toolchain so that `cargo build` emits a
+          # MinGW-compatible libxet_sys.a (in target/release/) that CGo can
+          # link against.  The default MSVC toolchain would produce xet_sys.lib
+          # which is not compatible with Go's MinGW-based CGo toolchain.
+          - os: windows
+            arch: amd64
+            runner: windows-latest
+            rust: stable-x86_64-pc-windows-gnu
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-${{ matrix.arch }}-cargo-${{ hashFiles('xet-sys/Cargo.toml', 'xet-sys/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.arch }}-cargo-
+
+      - name: Build Rust static library
+        run: cargo build --release --manifest-path xet-sys/Cargo.toml
+
+      - name: Build Go packages
+        run: go build ./...
+
+      - name: Run Go tests
+        run: go test ./...

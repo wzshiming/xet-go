@@ -1,0 +1,40 @@
+[package]
+name = "xet-sys"
+version = "0.1.0"
+edition = "2021"
+description = "Statically-linked C API for xet-core, consumed by the Go CGo bindings in xet/"
+license = "MIT"
+publish = false
+
+[lib]
+name = "xet_sys"
+crate-type = ["staticlib"]
+
+# -----------------------------------------------------------------------
+# xet-core dependencies
+# The `xet-pkg` crate (package name "hf-xet") provides the high-level
+# upload/download/hash API.  The dependency alias "xet-pkg" means it is
+# imported in Rust as `xet_pkg::`.
+#
+# We pull `xet-runtime` explicitly so we can enable the `no-default-cache`
+# feature, which turns off the on-disk chunk cache (appropriate for
+# short-lived CLI/library usage).
+# -----------------------------------------------------------------------
+[dependencies]
+xet-pkg = { git = "https://github.com/huggingface/xet-core", package = "hf-xet" }
+xet-runtime = { git = "https://github.com/huggingface/xet-core", package = "xet-runtime", features = ["no-default-cache"] }
+
+libc = "0.2"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+
+# -----------------------------------------------------------------------
+# Build profiles
+# -----------------------------------------------------------------------
+# Abort on panic instead of unwinding — safer across the FFI boundary.
+[profile.release]
+panic = "abort"
+opt-level = 3
+lto = true
+
+[profile.dev]
+panic = "abort"
