@@ -28,7 +28,7 @@ rust-build-debug:
 # Regenerate CGo bindings
 # ---------------------------------------------------------------------------
 generate:
-	go run github.com/xlab/c-for-go@latest -ccdefs -ccincl hf_xet.yml
+	go run github.com/xlab/c-for-go@latest -ccdefs -ccincl xet.yml
 
 # ---------------------------------------------------------------------------
 # Go build / test (depend on the Rust library being present)
@@ -46,5 +46,5 @@ test: rust-build
 
 clean:
 	cargo clean --manifest-path $(CARGO_MANIFEST)
-	rm -f hf_xet/hf_xet.go hf_xet/types.go hf_xet/doc.go \
-	      hf_xet/cgo_helpers.go hf_xet/cgo_helpers.h
+	rm -f xet/xet.go xet/types.go xet/doc.go \
+	      xet/cgo_helpers.go xet/cgo_helpers.h

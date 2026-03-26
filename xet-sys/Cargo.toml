@@ -2,7 +2,7 @@
 name = "xet-sys"
 version = "0.1.0"
 edition = "2021"
-description = "Statically-linked C API for xet-core, consumed by the Go CGo bindings in hf_xet/"
+description = "Statically-linked C API for xet-core, consumed by the Go CGo bindings in xet/"
 license = "MIT"
 publish = false
 

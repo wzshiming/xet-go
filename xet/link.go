@@ -1,4 +1,4 @@
-// Package hf_xet provides Go CGo bindings for the xet-core HuggingFace Xet
+// Package xet provides Go CGo bindings for the xet-core HuggingFace Xet
 // storage library.
 //
 // # Linking
@@ -18,11 +18,11 @@
 //
 //	export CGO_LDFLAGS="-L$(pwd)/xet-sys/target/debug -lxet_sys"
 
-package hf_xet
+package xet
 
 /*
 // Link the Rust static library.
-// ${SRCDIR} is resolved by CGo to the directory containing this file (hf_xet/).
+// ${SRCDIR} is resolved by CGo to the directory containing this file (xet/).
 #cgo LDFLAGS: -L${SRCDIR}/../xet-sys/target/release -lxet_sys
 
 // System libraries required by the Rust runtime and xet-core on each platform.

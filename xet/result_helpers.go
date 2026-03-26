@@ -1,7 +1,7 @@
-package hf_xet
+package xet
 
 /*
-#include "hf_xet.h"
+#include "xet.h"
 #include <stdlib.h>
 #include <string.h>
 */
@@ -33,7 +33,7 @@ func (x *Xetuploadresult) Len() int {
 func (x *Xetuploadresult) HashAt(i int) string {
 	n := x.Len()
 	if i < 0 || i >= n {
-		panic("hf_xet: HashAt index out of range")
+		panic("xet: HashAt index out of range")
 	}
 	items := (*[1 << 20]C.XetUploadInfo)(unsafe.Pointer(x.ref30b7a435.items))[:n:n]
 	if items[i].hash == nil {
@@ -47,7 +47,7 @@ func (x *Xetuploadresult) HashAt(i int) string {
 func (x *Xetuploadresult) FileSizeAt(i int) uint64 {
 	n := x.Len()
 	if i < 0 || i >= n {
-		panic("hf_xet: FileSizeAt index out of range")
+		panic("xet: FileSizeAt index out of range")
 	}
 	items := (*[1 << 20]C.XetUploadInfo)(unsafe.Pointer(x.ref30b7a435.items))[:n:n]
 	return uint64(items[i].file_size)
@@ -58,7 +58,7 @@ func (x *Xetuploadresult) FileSizeAt(i int) uint64 {
 func (x *Xetuploadresult) SHA256At(i int) string {
 	n := x.Len()
 	if i < 0 || i >= n {
-		panic("hf_xet: SHA256At index out of range")
+		panic("xet: SHA256At index out of range")
 	}
 	items := (*[1 << 20]C.XetUploadInfo)(unsafe.Pointer(x.ref30b7a435.items))[:n:n]
 	if items[i].sha256 == nil {
@@ -92,7 +92,7 @@ func (x *Xetdownloadresult) Len() int {
 func (x *Xetdownloadresult) PathAt(i int) string {
 	n := x.Len()
 	if i < 0 || i >= n {
-		panic("hf_xet: PathAt index out of range")
+		panic("xet: PathAt index out of range")
 	}
 	ptrs := (*[1 << 20]*C.char)(unsafe.Pointer(x.ref78b08ee.paths))[:n:n]
 	if ptrs[i] == nil {

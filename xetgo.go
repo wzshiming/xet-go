@@ -1,6 +1,6 @@
 // Package xetgo provides an idiomatic Go API for HuggingFace Xet storage.
 //
-// It wraps the low-level CGo bindings in [github.com/wzshiming/xet-go/hf_xet],
+// It wraps the low-level CGo bindings in [github.com/wzshiming/xet-go/xet],
 // hiding manual memory management and C-style types behind clean Go types and
 // standard error returns.
 //
@@ -23,7 +23,7 @@ package xetgo
 import (
 	"errors"
 
-	"github.com/wzshiming/xet-go/hf_xet"
+	"github.com/wzshiming/xet-go/xet"
 )
 
 // TokenInfo holds authentication credentials for Xet storage.
@@ -61,11 +61,11 @@ type DownloadRequest struct {
 // filePaths must not be empty.  The returned slice has the same length as
 // filePaths with one UploadResult per file, in the same order.
 func HashFiles(filePaths []string) ([]UploadResult, error) {
-	raw := hf_xet.HashFiles(filePaths, uint64(len(filePaths)))
+	raw := xet.HashFiles(filePaths, uint64(len(filePaths)))
 	if raw == nil {
 		return nil, errors.New("xetgo: HashFiles returned nil result")
 	}
-	defer hf_xet.FreeUploadResult(raw)
+	defer xet.FreeUploadResult(raw)
 	return collectUploadResults(raw)
 }
 
@@ -86,11 +86,11 @@ func UploadFiles(filePaths []string, endpoint string, token *TokenInfo, sha256s 
 	if skipSHA256 {
 		skip = 1
 	}
-	raw := hf_xet.UploadFiles(filePaths, uint64(len(filePaths)), endpoint, ti, sha256s, uint64(len(sha256s)), skip)
+	raw := xet.UploadFiles(filePaths, uint64(len(filePaths)), endpoint, ti, sha256s, uint64(len(sha256s)), skip)
 	if raw == nil {
 		return nil, errors.New("xetgo: UploadFiles returned nil result")
 	}
-	defer hf_xet.FreeUploadResult(raw)
+	defer xet.FreeUploadResult(raw)
 	return collectUploadResults(raw)
 }
 
@@ -102,38 +102,38 @@ func UploadFiles(filePaths []string, endpoint string, token *TokenInfo, sha256s 
 // The returned slice contains the local destination paths of the downloaded
 // files, in the same order as the input files slice.
 func DownloadFiles(files []DownloadRequest, endpoint string, token *TokenInfo) ([]string, error) {
-	infos := make([]hf_xet.Xetdownloadinfo, len(files))
+	infos := make([]xet.Xetdownloadinfo, len(files))
 	for i, f := range files {
-		infos[i] = hf_xet.Xetdownloadinfo{
+		infos[i] = xet.Xetdownloadinfo{
 			DestinationPath: []byte(f.DestinationPath),
 			Hash:            []byte(f.Hash),
 			FileSize:        f.FileSize,
 		}
 	}
 	ti := toRawTokenInfo(token)
-	raw := hf_xet.DownloadFiles(infos, uint64(len(infos)), endpoint, ti)
+	raw := xet.DownloadFiles(infos, uint64(len(infos)), endpoint, ti)
 	if raw == nil {
 		return nil, errors.New("xetgo: DownloadFiles returned nil result")
 	}
-	defer hf_xet.FreeDownloadResult(raw)
+	defer xet.FreeDownloadResult(raw)
 	return collectDownloadResults(raw)
 }
 
-// toRawTokenInfo converts a *TokenInfo to the hf_xet low-level type.
+// toRawTokenInfo converts a *TokenInfo to the xet low-level type.
 // It returns nil when token is nil (unauthenticated access).
-func toRawTokenInfo(token *TokenInfo) *hf_xet.Xettokeninfo {
+func toRawTokenInfo(token *TokenInfo) *xet.Xettokeninfo {
 	if token == nil {
 		return nil
 	}
-	return &hf_xet.Xettokeninfo{
+	return &xet.Xettokeninfo{
 		Token:  []byte(token.Token),
 		Expiry: token.Expiry,
 	}
 }
 
-// collectUploadResults converts a raw *hf_xet.Xetuploadresult into a Go slice,
+// collectUploadResults converts a raw *xet.Xetuploadresult into a Go slice,
 // returning an error if the underlying C result carries an error message.
-func collectUploadResults(raw *hf_xet.Xetuploadresult) ([]UploadResult, error) {
+func collectUploadResults(raw *xet.Xetuploadresult) ([]UploadResult, error) {
 	if errMsg := raw.Err(); errMsg != "" {
 		return nil, errors.New(errMsg)
 	}
@@ -149,9 +149,9 @@ func collectUploadResults(raw *hf_xet.Xetuploadresult) ([]UploadResult, error) {
 	return results, nil
 }
 
-// collectDownloadResults converts a raw *hf_xet.Xetdownloadresult into a Go
+// collectDownloadResults converts a raw *xet.Xetdownloadresult into a Go
 // string slice, returning an error if the underlying C result carries an error.
-func collectDownloadResults(raw *hf_xet.Xetdownloadresult) ([]string, error) {
+func collectDownloadResults(raw *xet.Xetdownloadresult) ([]string, error) {
 	if errMsg := raw.Err(); errMsg != "" {
 		return nil, errors.New(errMsg)
 	}

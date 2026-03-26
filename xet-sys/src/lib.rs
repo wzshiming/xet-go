@@ -1,6 +1,6 @@
-//! xet-sys — Rust C API static library for the Go hf_xet package.
+//! xet-sys — Rust C API static library for the Go xet package.
 //!
-//! This crate exposes the five functions declared in `hf_xet/hf_xet.h` as a
+//! This crate exposes the five functions declared in `xet/xet.h` as a
 //! C-compatible `staticlib` that the Go CGo layer links against.  Each
 //! function wraps the corresponding asynchronous xet-core operation with a
 //! lazily-initialised Tokio runtime, so callers do not need to manage an
@@ -21,7 +21,7 @@ use std::sync::OnceLock;
 use xet_pkg::legacy::{Sha256Policy, XetFileInfo, data_client};
 
 // ---------------------------------------------------------------------------
-// C struct mirrors — must match hf_xet/hf_xet.h exactly (#[repr(C)])
+// C struct mirrors — must match xet/xet.h exactly (#[repr(C)])
 // ---------------------------------------------------------------------------
 
 #[repr(C)]
