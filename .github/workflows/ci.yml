@@ -66,8 +66,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ matrix.arch }}-cargo-
 
-      - name: Build Rust static library
-        run: cargo build --release --manifest-path xet-sys/Cargo.toml
+      - name: Build Rust static library and copy to libs/
+        run: make copy-libs
 
       - name: Build Go packages
         run: go build ./...

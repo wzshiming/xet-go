@@ -3,27 +3,34 @@
 //
 // # Linking
 //
-// The native implementation is compiled from the Rust crate in xet-sys/ into
-// a static library (libxet_sys.a).  Build it before using this package:
+// Pre-built static libraries for all supported platforms are bundled in the
+// libs/ directory of this module.  No Rust or Cargo installation is required
+// to build Go programs that import this package.
 //
-//	make rust-build          # release build (recommended)
-//	make rust-build-debug    # debug build
+// If you need to rebuild the static library from source (e.g. after modifying
+// xet-sys/), run:
 //
-// Or directly with Cargo:
+//	make copy-libs     # builds xet-sys and copies the library into libs/
 //
-//	cargo build --release --manifest-path xet-sys/Cargo.toml
+// Or, to only copy an already-built library into libs/:
 //
-// The CGo flags below link against the release artefact.  To use a debug
-// build, set CGO_LDFLAGS to point at the debug output directory instead:
+//	cp xet-sys/target/release/libxet_sys.a libs/<os>/<arch>/libxet_sys.a
 //
-//	export CGO_LDFLAGS="-L$(pwd)/xet-sys/target/debug -lxet_sys"
+// The CGo flags below prefer the pre-built library in libs/ and fall back to
+// the Cargo release build output when the pre-built library is absent.
 
 package xet
 
 /*
 // Link the Rust static library.
 // ${SRCDIR} is resolved by CGo to the directory containing this file (xet/).
-#cgo LDFLAGS: -L${SRCDIR}/../xet-sys/target/release -lxet_sys
+// The pre-built library (libs/) is searched first; the Cargo release output
+// (xet-sys/target/release/) is the fallback for local Rust development.
+#cgo linux,amd64   LDFLAGS: -L${SRCDIR}/../libs/linux/amd64   -L${SRCDIR}/../xet-sys/target/release -lxet_sys
+#cgo linux,arm64   LDFLAGS: -L${SRCDIR}/../libs/linux/arm64   -L${SRCDIR}/../xet-sys/target/release -lxet_sys
+#cgo darwin,amd64  LDFLAGS: -L${SRCDIR}/../libs/darwin/amd64  -L${SRCDIR}/../xet-sys/target/release -lxet_sys
+#cgo darwin,arm64  LDFLAGS: -L${SRCDIR}/../libs/darwin/arm64  -L${SRCDIR}/../xet-sys/target/release -lxet_sys
+#cgo windows,amd64 LDFLAGS: -L${SRCDIR}/../libs/windows/amd64 -L${SRCDIR}/../xet-sys/target/release -lxet_sys
 
 // System libraries required by the Rust runtime and xet-core on each platform.
 #cgo linux   LDFLAGS: -ldl -lm -lpthread -lrt
