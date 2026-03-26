@@ -1,0 +1,127 @@
+name: Update pre-built libraries
+
+# Rebuild and commit the platform-specific static libraries whenever
+# xet-sys/ changes on the default branch, or when triggered manually.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'xet-sys/**'
+      - '.github/workflows/update-libs.yml'
+  workflow_dispatch:
+
+jobs:
+  # -------------------------------------------------------------------------
+  # Build libxet_sys.a on every supported platform
+  # -------------------------------------------------------------------------
+  build-lib:
+    name: Build ${{ matrix.os }}/${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+            runner: ubuntu-latest
+            rust: stable
+
+          - os: linux
+            arch: arm64
+            runner: ubuntu-24.04-arm
+            rust: stable
+
+          - os: darwin
+            arch: amd64
+            runner: macos-26-intel
+            rust: stable
+
+          - os: darwin
+            arch: arm64
+            runner: macos-26
+            rust: stable
+
+          # Use the GNU Rust toolchain on Windows so that cargo emits a
+          # MinGW-compatible libxet_sys.a usable by CGo.
+          - os: windows
+            arch: amd64
+            runner: windows-latest
+            rust: stable-x86_64-pc-windows-gnu
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-${{ matrix.arch }}-cargo-${{ hashFiles('xet-sys/Cargo.toml', 'xet-sys/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.arch }}-cargo-
+
+      - name: Build static library
+        run: cargo build --release --manifest-path xet-sys/Cargo.toml
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libxet_sys-${{ matrix.os }}-${{ matrix.arch }}
+          path: xet-sys/target/release/libxet_sys.a
+          if-no-files-found: error
+
+  # -------------------------------------------------------------------------
+  # Download all artifacts and commit them into libs/
+  # -------------------------------------------------------------------------
+  commit-libs:
+    name: Commit pre-built libraries
+    needs: build-lib
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Use a token with write access so the push succeeds.
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/artifacts
+
+      - name: Copy libraries into libs/
+        shell: bash
+        run: |
+          set -euo pipefail
+          for platform in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64; do
+            os="${platform%%/*}"
+            arch="${platform##*/}"
+            artifact_name="libxet_sys-${os}-${arch}"
+            dest="libs/${os}/${arch}"
+            src="/tmp/artifacts/${artifact_name}/libxet_sys.a"
+            if [ -f "${src}" ]; then
+              mkdir -p "${dest}"
+              cp "${src}" "${dest}/libxet_sys.a"
+              echo "Copied ${src} -> ${dest}/libxet_sys.a"
+            else
+              echo "WARNING: artifact not found: ${src}" >&2
+            fi
+          done
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add libs/
+          git diff --cached --quiet \
+            && echo "No library changes to commit." \
+            || (git commit -m "chore: update pre-built static libraries [skip ci]" && git push)

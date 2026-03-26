@@ -33,3 +33,7 @@ go.work.sum
 
 # Rust build artefacts
 xet-sys/target/
+
+# Pre-built static libraries are intentionally tracked in libs/
+# (Do NOT add libs/ here.)
+!libs/**/*.a
