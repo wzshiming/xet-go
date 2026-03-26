@@ -27,11 +27,11 @@ jobs:
           # macOS
           - os: darwin
             arch: amd64
-            runner: macos-13
+            runner: macos-26-intel
             rust: stable
           - os: darwin
             arch: arm64
-            runner: macos-latest
+            runner: macos-26
             rust: stable
 
           # Windows — use the GNU Rust toolchain so that `cargo build` emits a
@@ -42,10 +42,6 @@ jobs:
             arch: amd64
             runner: windows-latest
             rust: stable-x86_64-pc-windows-gnu
-          - os: windows
-            arch: arm64
-            runner: windows-11-arm
-            rust: stable-aarch64-pc-windows-gnullvm
 
     steps:
       - uses: actions/checkout@v4
