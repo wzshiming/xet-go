@@ -4,11 +4,6 @@ name: Update pre-built libraries
 # xet-sys/ changes on the default branch, or when triggered manually.
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'xet-sys/**'
-      - '.github/workflows/update-libs.yml'
   workflow_dispatch:
 
 jobs:
