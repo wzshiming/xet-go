@@ -98,31 +98,6 @@ XetUploadResult *xet_upload_files(
     int             skip_sha256
 );
 
-/**
- * Upload in-memory byte buffers to HuggingFace Xet storage.
- *
- * @param buffers       Array of pointers to raw file data.
- * @param buffer_sizes  Array of sizes (in bytes) corresponding to each buffer.
- * @param file_count    Number of entries in both arrays.
- * @param endpoint      CAS endpoint URL (NUL-terminated), or NULL for default.
- * @param token_info    Authentication token, or NULL for unauthenticated access.
- * @param sha256s       Optional pre-computed SHA-256 hex digests (one per file),
- *                      or NULL.
- * @param sha256_count  Number of entries in @p sha256s.
- * @param skip_sha256   Non-zero to skip SHA-256 verification.
- * @return Heap-allocated XetUploadResult; caller must free with xet_free_upload_result().
- */
-XetUploadResult *xet_upload_bytes(
-    const uint8_t **buffers,
-    const size_t   *buffer_sizes,
-    size_t          file_count,
-    const char     *endpoint,
-    XetTokenInfo   *token_info,
-    const char    **sha256s,
-    size_t          sha256_count,
-    int             skip_sha256
-);
-
 /* -------------------------------------------------------------------------
  * Hash function
  * ---------------------------------------------------------------------- */

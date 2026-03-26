@@ -23,8 +23,6 @@ generate:
 		cp hf_xet/hf_xet/*.h  hf_xet/ 2>/dev/null || true && \
 		rm -rf hf_xet/hf_xet; \
 	fi
-	@# Re-apply the uint8_t/char pack-back patch in UploadBytes
-	@sed -i '/packSSByte(buffers, cbuffers)/d' hf_xet/hf_xet.go
 
 build:
 	go build ./...

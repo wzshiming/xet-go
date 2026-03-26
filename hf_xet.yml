@@ -27,10 +27,6 @@ TRANSLATOR:
       #                   sha256s (arr)
       - {target: "^xet_upload_files$",
          tips: [arr, 0, ref, ref, arr, 0, 0]}
-      # xet_upload_bytes: buffers (arr), buffer_sizes (arr), endpoint (ref),
-      #                   token_info (ref), sha256s (arr)
-      - {target: "^xet_upload_bytes$",
-         tips: [arr, arr, 0, ref, ref, arr, 0, 0]}
       # xet_hash_files: file_paths (arr)
       - {target: "^xet_hash_files$",
          tips: [arr, 0]}
