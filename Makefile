@@ -27,16 +27,8 @@ rust-build-debug:
 # ---------------------------------------------------------------------------
 # Regenerate CGo bindings
 # ---------------------------------------------------------------------------
-# Install c-for-go if it is not available:
-#   go install github.com/xlab/c-for-go@latest
 generate:
-	c-for-go -ccdefs -ccincl hf_xet.yml
-	@# Move generated files from the nested package dir to hf_xet/
-	@if [ -d hf_xet/hf_xet ]; then \
-		cp hf_xet/hf_xet/*.go hf_xet/ && \
-		cp hf_xet/hf_xet/*.h  hf_xet/ 2>/dev/null || true && \
-		rm -rf hf_xet/hf_xet; \
-	fi
+	go run github.com/xlab/c-for-go@latest -ccdefs -ccincl hf_xet.yml
 
 # ---------------------------------------------------------------------------
 # Go build / test (depend on the Rust library being present)
