@@ -5,7 +5,7 @@ name: Update pre-built libraries
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - 'xet-sys/**'
       - '.github/workflows/update-libs.yml'
