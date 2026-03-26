@@ -33,6 +33,15 @@ TRANSLATOR:
       # xet_download_files: files (arr), endpoint (ref), token_info (ref)
       - {target: "^xet_download_files$",
          tips: [arr, 0, ref, ref]}
+      # xet_chunk_data: data (arr)
+      - {target: "^xet_chunk_data$",
+         tips: [arr, 0]}
+      # xet_hash_chunk: data (arr)
+      - {target: "^xet_hash_chunk$",
+         tips: [arr, 0]}
+      # xet_compute_xorb_hash: chunks (arr)
+      - {target: "^xet_compute_xorb_hash$",
+         tips: [arr, 0]}
       # default: treat every pointer as ref
       - {target: "(?i)^xet_", tips: [ref, ref, ref, ref, ref, ref, ref, ref]}
   Rules:

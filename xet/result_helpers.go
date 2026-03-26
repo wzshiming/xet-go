@@ -100,3 +100,52 @@ func (x *Xetdownloadresult) PathAt(i int) string {
 	}
 	return C.GoString(ptrs[i])
 }
+
+// ---------------------------------------------------------------------------
+// Helper methods for Xetchunkresult
+// ---------------------------------------------------------------------------
+
+// Err returns the error message from an XetChunkResult, or an empty string
+// when the operation succeeded (i.e. the C error pointer is NULL).
+func (x *Xetchunkresult) Err() string {
+	if x == nil || x.ref2f030d4a == nil {
+		return ""
+	}
+	if x.ref2f030d4a.error == nil {
+		return ""
+	}
+	return C.GoString(x.ref2f030d4a.error)
+}
+
+// Len returns the number of chunks in the result.
+func (x *Xetchunkresult) Len() int {
+	if x == nil || x.ref2f030d4a == nil {
+		return 0
+	}
+	return int(x.ref2f030d4a.count)
+}
+
+// HashAt returns the chunk hash at index i (hex string).
+// It panics if i is out of range.
+func (x *Xetchunkresult) HashAt(i int) string {
+	n := x.Len()
+	if i < 0 || i >= n {
+		panic("xet: HashAt index out of range")
+	}
+	items := (*[1 << 20]C.XetChunkInfo)(unsafe.Pointer(x.ref2f030d4a.items))[:n:n]
+	if items[i].hash == nil {
+		return ""
+	}
+	return C.GoString(items[i].hash)
+}
+
+// SizeAt returns the chunk size at index i.
+// It panics if i is out of range.
+func (x *Xetchunkresult) SizeAt(i int) uint64 {
+	n := x.Len()
+	if i < 0 || i >= n {
+		panic("xet: SizeAt index out of range")
+	}
+	items := (*[1 << 20]C.XetChunkInfo)(unsafe.Pointer(x.ref2f030d4a.items))[:n:n]
+	return uint64(items[i].size)
+}

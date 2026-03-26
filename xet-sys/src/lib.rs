@@ -19,6 +19,9 @@ use std::ptr;
 use std::sync::OnceLock;
 
 use xet_pkg::legacy::{Sha256Policy, XetFileInfo, data_client};
+use xet_data::deduplication::Chunker;
+use xet_data::deduplication::constants::TARGET_CHUNK_SIZE;
+use xet_core_structures::merklehash::{MerkleHash, compute_data_hash, xorb_hash};
 
 // ---------------------------------------------------------------------------
 // C struct mirrors — must match xet/xet.h exactly (#[repr(C)])
@@ -54,6 +57,19 @@ pub struct XetDownloadInfo {
 #[repr(C)]
 pub struct XetDownloadResult {
     pub paths: *mut *mut c_char,
+    pub count: libc::size_t,
+    pub error: *mut c_char,
+}
+
+#[repr(C)]
+pub struct XetChunkInfo {
+    pub hash: *mut c_char,
+    pub size: u64,
+}
+
+#[repr(C)]
+pub struct XetChunkResult {
+    pub items: *mut XetChunkInfo,
     pub count: libc::size_t,
     pub error: *mut c_char,
 }
@@ -117,6 +133,15 @@ fn upload_err(msg: &str) -> *mut XetUploadResult {
 fn download_err(msg: &str) -> *mut XetDownloadResult {
     Box::into_raw(Box::new(XetDownloadResult {
         paths: ptr::null_mut(),
+        count: 0,
+        error: opt_str_to_c(Some(msg)),
+    }))
+}
+
+/// Build an error-only `XetChunkResult`.
+fn chunk_err(msg: &str) -> *mut XetChunkResult {
+    Box::into_raw(Box::new(XetChunkResult {
+        items: ptr::null_mut(),
         count: 0,
         error: opt_str_to_c(Some(msg)),
     }))
@@ -331,4 +356,139 @@ pub unsafe extern "C" fn xet_free_download_result(result: *mut XetDownloadResult
         drop(CString::from_raw(r.error));
     }
     // `r` (the Box) is dropped here, freeing the XetDownloadResult itself.
+}
+
+/// Chunk raw data into content-addressable chunks.
+///
+/// # Safety
+/// `data` must be valid for the duration of the call.
+/// The returned pointer must be freed with `xet_free_chunk_result`.
+#[no_mangle]
+pub unsafe extern "C" fn xet_chunk_data(
+    data: *const u8,
+    data_len: libc::size_t,
+) -> *mut XetChunkResult {
+    if data.is_null() || data_len == 0 {
+        return chunk_err("invalid input data");
+    }
+
+    let data_slice = std::slice::from_raw_parts(data, data_len);
+    let mut chunker = Chunker::new(*TARGET_CHUNK_SIZE);
+
+    // Process data through the chunker
+    let chunks = chunker.next_block(data_slice, false);
+    let mut all_chunks = chunks;
+
+    // Get the final chunk if any
+    if let Some(final_chunk) = chunker.finish() {
+        all_chunks.push(final_chunk);
+    }
+
+    let count = all_chunks.len();
+    let mut items: Vec<XetChunkInfo> = all_chunks
+        .iter()
+        .map(|chunk| XetChunkInfo {
+            hash: opt_str_to_c(Some(&chunk.hash.to_string())),
+            size: chunk.data.len() as u64,
+        })
+        .collect();
+
+    let items_ptr = items.as_mut_ptr();
+    std::mem::forget(items); // transfer ownership to C caller
+
+    Box::into_raw(Box::new(XetChunkResult {
+        items: items_ptr,
+        count,
+        error: ptr::null_mut(),
+    }))
+}
+
+/// Compute the hash of a single chunk of data.
+///
+/// # Safety
+/// `data` must be valid for the duration of the call.
+/// The returned pointer must be freed with `xet_free_string`.
+#[no_mangle]
+pub unsafe extern "C" fn xet_hash_chunk(
+    data: *const u8,
+    data_len: libc::size_t,
+) -> *mut c_char {
+    if data.is_null() || data_len == 0 {
+        return ptr::null_mut();
+    }
+
+    let data_slice = std::slice::from_raw_parts(data, data_len);
+    let hash = compute_data_hash(data_slice);
+    opt_str_to_c(Some(&hash.to_string()))
+}
+
+/// Compute the XORB hash from a list of chunk hashes and sizes.
+///
+/// # Safety
+/// `chunks` must be valid for the duration of the call.
+/// The returned pointer must be freed with `xet_free_string`.
+#[no_mangle]
+pub unsafe extern "C" fn xet_compute_xorb_hash(
+    chunks: *const XetChunkInfo,
+    chunk_count: libc::size_t,
+) -> *mut c_char {
+    if chunks.is_null() || chunk_count == 0 {
+        return ptr::null_mut();
+    }
+
+    let mut chunk_list: Vec<(MerkleHash, u64)> = Vec::with_capacity(chunk_count);
+
+    for i in 0..chunk_count {
+        let chunk = &*chunks.add(i);
+        if let Some(hash_str) = c_str_opt(chunk.hash) {
+            match MerkleHash::from_hex(&hash_str) {
+                Ok(hash) => chunk_list.push((hash, chunk.size)),
+                Err(_) => return ptr::null_mut(),
+            }
+        } else {
+            return ptr::null_mut();
+        }
+    }
+
+    let xorb = xorb_hash(&chunk_list);
+    opt_str_to_c(Some(&xorb.to_string()))
+}
+
+/// Release a `XetChunkResult` returned by `xet_chunk_data`.
+///
+/// Passing `NULL` is a no-op.
+///
+/// # Safety
+/// `result` must have been returned by this library and not previously freed.
+#[no_mangle]
+pub unsafe extern "C" fn xet_free_chunk_result(result: *mut XetChunkResult) {
+    if result.is_null() {
+        return;
+    }
+    let r = Box::from_raw(result);
+    if !r.items.is_null() {
+        let items = Vec::from_raw_parts(r.items, r.count, r.count);
+        for item in items {
+            if !item.hash.is_null() {
+                drop(CString::from_raw(item.hash));
+            }
+        }
+    }
+    if !r.error.is_null() {
+        drop(CString::from_raw(r.error));
+    }
+}
+
+/// Release a string returned by `xet_hash_chunk` or `xet_compute_xorb_hash`.
+///
+/// Passing `NULL` is a no-op.
+///
+/// # Safety
+/// `str` must have been returned by this library and not previously freed.
+#[no_mangle]
+pub unsafe extern "C" fn xet_free_string(str: *mut c_char) {
+    if str.is_null() {
+        return;
+    }
+    drop(CString::from_raw(str));
 }

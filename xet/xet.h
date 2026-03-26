@@ -117,6 +117,72 @@ XetUploadResult *xet_hash_files(
 );
 
 /* -------------------------------------------------------------------------
+ * Chunking functions
+ * ---------------------------------------------------------------------- */
+
+/** Metadata for a single chunk. */
+typedef struct XetChunkInfo {
+    const char *hash;      /**< Chunk hash (hex string, NUL-terminated). */
+    uint64_t    size;      /**< Chunk size in bytes. */
+} XetChunkInfo;
+
+/**
+ * A chunk result.
+ *
+ * On success  : error == NULL, items points to an array of @p count elements.
+ * On failure  : error != NULL, items may be NULL.
+ */
+typedef struct XetChunkResult {
+    XetChunkInfo *items; /**< Array of chunk metadata (may be NULL on error). */
+    size_t        count; /**< Number of elements in @p items. */
+    const char   *error; /**< Human-readable error string, or NULL on success. */
+} XetChunkResult;
+
+/**
+ * Chunk raw data into content-addressable chunks.
+ *
+ * Splits the input data into variable-sized chunks using content-defined chunking
+ * and returns the hash and size of each chunk.
+ *
+ * @param data        Pointer to raw data to chunk.
+ * @param data_len    Length of @p data in bytes.
+ * @return Heap-allocated XetChunkResult; caller must free with xet_free_chunk_result().
+ */
+XetChunkResult *xet_chunk_data(
+    const uint8_t *data,
+    size_t         data_len
+);
+
+/**
+ * Compute the hash of a single chunk of data.
+ *
+ * @param data        Pointer to raw chunk data.
+ * @param data_len    Length of @p data in bytes.
+ * @return NUL-terminated hex string of the chunk hash; caller must free with xet_free_string().
+ *         Returns NULL on error.
+ */
+char *xet_hash_chunk(
+    const uint8_t *data,
+    size_t         data_len
+);
+
+/**
+ * Compute the XORB hash from a list of chunk hashes and sizes.
+ *
+ * The XORB hash is an XOR-based aggregate hash used for efficient verification
+ * of file integrity without downloading all chunks.
+ *
+ * @param chunks      Array of XetChunkInfo descriptors.
+ * @param chunk_count Number of entries in @p chunks.
+ * @return NUL-terminated hex string of the XORB hash; caller must free with xet_free_string().
+ *         Returns NULL on error.
+ */
+char *xet_compute_xorb_hash(
+    XetChunkInfo *chunks,
+    size_t        chunk_count
+);
+
+/* -------------------------------------------------------------------------
  * Download function
  * ---------------------------------------------------------------------- */
 
@@ -154,6 +220,20 @@ void xet_free_upload_result(XetUploadResult *result);
  * Passing NULL is a no-op.
  */
 void xet_free_download_result(XetDownloadResult *result);
+
+/**
+ * Release a XetChunkResult previously returned by xet_chunk_data().
+ *
+ * Passing NULL is a no-op.
+ */
+void xet_free_chunk_result(XetChunkResult *result);
+
+/**
+ * Release a string previously returned by xet_hash_chunk() or xet_compute_xorb_hash().
+ *
+ * Passing NULL is a no-op.
+ */
+void xet_free_string(char *str);
 
 #ifdef __cplusplus
 } /* extern "C" */

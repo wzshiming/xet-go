@@ -23,6 +23,8 @@ crate-type = ["staticlib"]
 [dependencies]
 xet-pkg = { git = "https://github.com/huggingface/xet-core", package = "hf-xet" }
 xet-runtime = { git = "https://github.com/huggingface/xet-core", package = "xet-runtime", features = ["no-default-cache"] }
+xet-data = { git = "https://github.com/huggingface/xet-core", package = "xet-data" }
+xet-core-structures = { git = "https://github.com/huggingface/xet-core", package = "xet-core-structures" }
 
 libc = "0.2"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }

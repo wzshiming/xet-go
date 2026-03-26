@@ -22,9 +22,15 @@ package xetgo
 
 import (
 	"errors"
+	"unsafe"
 
 	"github.com/wzshiming/xet-go/xet"
 )
+
+/*
+#include <stdlib.h>
+*/
+import "C"
 
 // TokenInfo holds authentication credentials for Xet storage.
 type TokenInfo struct {
@@ -53,6 +59,14 @@ type DownloadRequest struct {
 	Hash string
 	// FileSize is the expected size of the file in bytes, or -1 if unknown.
 	FileSize int64
+}
+
+// ChunkInfo describes a single chunk.
+type ChunkInfo struct {
+	// Hash is the chunk hash (hex string).
+	Hash string
+	// Size is the size of the chunk in bytes.
+	Size uint64
 }
 
 // HashFiles computes Xet content-hashes for local files without uploading them.
@@ -161,4 +175,81 @@ func collectDownloadResults(raw *xet.Xetdownloadresult) ([]string, error) {
 		paths[i] = raw.PathAt(i)
 	}
 	return paths, nil
+}
+
+// ChunkData splits raw data into content-addressable chunks using content-defined
+// chunking (CDC) and returns metadata (hash and size) for each chunk.
+//
+// The chunking algorithm produces variable-sized chunks with an average target size,
+// ensuring identical data produces identical chunks regardless of offset.
+func ChunkData(data []byte) ([]ChunkInfo, error) {
+	raw := xet.ChunkData(data, uint64(len(data)))
+	if raw == nil {
+		return nil, errors.New("xetgo: ChunkData returned nil result")
+	}
+	defer xet.FreeChunkResult(raw)
+	return collectChunkResults(raw)
+}
+
+// HashChunk computes the Xet hash for a single chunk of data.
+//
+// This is useful for verifying chunk integrity or computing hashes for
+// data that has already been chunked.
+func HashChunk(data []byte) (string, error) {
+	if len(data) == 0 {
+		return "", errors.New("xetgo: cannot hash empty data")
+	}
+	cstr := xet.HashChunk(data, uint64(len(data)))
+	if cstr == nil {
+		return "", errors.New("xetgo: HashChunk returned nil")
+	}
+	defer xet.FreeString(cstr)
+	// Convert C string to Go string
+	return C.GoString((*C.char)(unsafe.Pointer(cstr))), nil
+}
+
+// ComputeXorbHash computes the XORB (XOR-based) hash from a list of chunk hashes.
+//
+// The XORB hash is an aggregate hash that allows efficient verification of file
+// integrity without downloading all chunks. It is computed by XORing together
+// the hashes of all chunks.
+//
+// chunks must not be empty.
+func ComputeXorbHash(chunks []ChunkInfo) (string, error) {
+	if len(chunks) == 0 {
+		return "", errors.New("xetgo: cannot compute XORB hash from empty chunk list")
+	}
+
+	// Convert ChunkInfo to xet.Xetchunkinfo
+	infos := make([]xet.Xetchunkinfo, len(chunks))
+	for i, c := range chunks {
+		infos[i] = xet.Xetchunkinfo{
+			Hash: []byte(c.Hash),
+			Size: c.Size,
+		}
+	}
+
+	cstr := xet.ComputeXorbHash(infos, uint64(len(infos)))
+	if cstr == nil {
+		return "", errors.New("xetgo: ComputeXorbHash returned nil")
+	}
+	defer xet.FreeString(cstr)
+	return C.GoString((*C.char)(unsafe.Pointer(cstr))), nil
+}
+
+// collectChunkResults converts a raw *xet.Xetchunkresult into a Go slice,
+// returning an error if the underlying C result carries an error message.
+func collectChunkResults(raw *xet.Xetchunkresult) ([]ChunkInfo, error) {
+	if errMsg := raw.Err(); errMsg != "" {
+		return nil, errors.New(errMsg)
+	}
+	n := raw.Len()
+	chunks := make([]ChunkInfo, n)
+	for i := range chunks {
+		chunks[i] = ChunkInfo{
+			Hash: raw.HashAt(i),
+			Size: raw.SizeAt(i),
+		}
+	}
+	return chunks, nil
 }
