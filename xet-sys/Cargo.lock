@@ -4103,6 +4103,8 @@ dependencies = [
  "hf-xet",
  "libc",
  "tokio",
+ "xet-core-structures",
+ "xet-data",
  "xet-runtime",
 ]
 

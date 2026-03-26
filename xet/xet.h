@@ -137,7 +137,7 @@ XetDownloadResult *xet_download_files(
 );
 
 /* -------------------------------------------------------------------------
- * Memory management
+ * Memory management (upload / download)
  * ---------------------------------------------------------------------- */
 
 /**
@@ -154,6 +154,167 @@ void xet_free_upload_result(XetUploadResult *result);
  * Passing NULL is a no-op.
  */
 void xet_free_download_result(XetDownloadResult *result);
+
+/* -------------------------------------------------------------------------
+ * Chunking types and functions
+ * ---------------------------------------------------------------------- */
+
+/** Metadata for a single content-defined chunk. */
+typedef struct XetChunkInfo {
+    const char *hash; /**< Chunk hash (hex string, NUL-terminated). */
+    uint64_t    size; /**< Chunk size in bytes. */
+} XetChunkInfo;
+
+/**
+ * Result of a chunking operation.
+ *
+ * On success  : error == NULL, items points to an array of @p count elements.
+ * On failure  : error != NULL, items may be NULL.
+ */
+typedef struct XetChunkResult {
+    XetChunkInfo *items; /**< Array of per-chunk metadata (may be NULL on error). */
+    size_t        count; /**< Number of elements in @p items. */
+    const char   *error; /**< Human-readable error string, or NULL on success. */
+} XetChunkResult;
+
+/**
+ * Split a raw byte buffer into content-defined chunks.
+ *
+ * @param data     Pointer to the input bytes.
+ * @param data_len Number of bytes in @p data.
+ * @return Heap-allocated XetChunkResult; caller must free with xet_free_chunk_result().
+ */
+XetChunkResult *xet_chunk_data(const uint8_t *data, size_t data_len);
+
+/**
+ * Split a file on disk into content-defined chunks.
+ *
+ * @param file_path NUL-terminated UTF-8 path to the input file.
+ * @return Heap-allocated XetChunkResult; caller must free with xet_free_chunk_result().
+ */
+XetChunkResult *xet_chunk_file(const char *file_path);
+
+/**
+ * Release a XetChunkResult previously returned by xet_chunk_data() or
+ * xet_chunk_file().
+ *
+ * Passing NULL is a no-op.
+ */
+void xet_free_chunk_result(XetChunkResult *result);
+
+/* -------------------------------------------------------------------------
+ * Hash types and functions
+ * ---------------------------------------------------------------------- */
+
+/**
+ * Result of a single hash computation.
+ *
+ * On success  : error == NULL, hash is a NUL-terminated hex string.
+ * On failure  : error != NULL, hash may be NULL.
+ */
+typedef struct XetHashResult {
+    const char *hash;  /**< Hex hash string (NUL-terminated), or NULL on error. */
+    const char *error; /**< Human-readable error string, or NULL on success. */
+} XetHashResult;
+
+/**
+ * Compute the Xet chunk hash of raw bytes.
+ *
+ * @param data     Pointer to the input bytes.
+ * @param data_len Number of bytes in @p data.
+ * @return Heap-allocated XetHashResult; caller must free with xet_free_hash_result().
+ */
+XetHashResult *xet_compute_chunk_hash(const uint8_t *data, size_t data_len);
+
+/**
+ * Compute the xorb hash from an ordered list of chunk hashes and sizes.
+ *
+ * @param chunk_hashes Array of NUL-terminated hex chunk hash strings.
+ * @param chunk_sizes  Array of chunk sizes in bytes (parallel to @p chunk_hashes).
+ * @param count        Number of elements in both arrays.
+ * @return Heap-allocated XetHashResult; caller must free with xet_free_hash_result().
+ */
+XetHashResult *xet_compute_xorb_hash(
+    const char    **chunk_hashes,
+    const uint64_t *chunk_sizes,
+    size_t          count
+);
+
+/**
+ * Compute the file hash from an ordered list of chunk hashes and sizes.
+ *
+ * @param chunk_hashes Array of NUL-terminated hex chunk hash strings.
+ * @param chunk_sizes  Array of chunk sizes in bytes (parallel to @p chunk_hashes).
+ * @param count        Number of elements in both arrays.
+ * @return Heap-allocated XetHashResult; caller must free with xet_free_hash_result().
+ */
+XetHashResult *xet_compute_file_hash(
+    const char    **chunk_hashes,
+    const uint64_t *chunk_sizes,
+    size_t          count
+);
+
+/**
+ * Compute the range hash from an ordered list of chunk hashes.
+ *
+ * @param chunk_hashes Array of NUL-terminated hex chunk hash strings.
+ * @param count        Number of elements in @p chunk_hashes.
+ * @return Heap-allocated XetHashResult; caller must free with xet_free_hash_result().
+ */
+XetHashResult *xet_compute_range_hash(
+    const char **chunk_hashes,
+    size_t       count
+);
+
+/**
+ * Release a XetHashResult previously returned by any xet_compute_*_hash() function.
+ *
+ * Passing NULL is a no-op.
+ */
+void xet_free_hash_result(XetHashResult *result);
+
+/* -------------------------------------------------------------------------
+ * Xorb-check types and functions
+ * ---------------------------------------------------------------------- */
+
+/**
+ * Result of an xorb integrity check.
+ *
+ * On success  : error == NULL, xorb_hash is the computed hash.
+ * On failure  : error != NULL, other fields may be zero/NULL.
+ */
+typedef struct XetXorbCheckResult {
+    const char   *xorb_hash;   /**< Computed xorb hash (hex, NUL-terminated). */
+    XetChunkInfo *chunks;      /**< Array of per-chunk metadata. */
+    size_t        chunk_count; /**< Number of elements in @p chunks. */
+    uint64_t      total_bytes; /**< Total data bytes across all chunks. */
+    const char   *error;       /**< Human-readable error string, or NULL on success. */
+} XetXorbCheckResult;
+
+/**
+ * Deserialize an xorb object from a raw byte buffer and compute its hash.
+ *
+ * @param data     Pointer to the input bytes.
+ * @param data_len Number of bytes in @p data.
+ * @return Heap-allocated XetXorbCheckResult; caller must free with xet_free_xorb_check_result().
+ */
+XetXorbCheckResult *xet_check_xorb_data(const uint8_t *data, size_t data_len);
+
+/**
+ * Deserialize an xorb object from a file and compute its hash.
+ *
+ * @param file_path NUL-terminated UTF-8 path to the xorb file.
+ * @return Heap-allocated XetXorbCheckResult; caller must free with xet_free_xorb_check_result().
+ */
+XetXorbCheckResult *xet_check_xorb_file(const char *file_path);
+
+/**
+ * Release a XetXorbCheckResult previously returned by xet_check_xorb_data()
+ * or xet_check_xorb_file().
+ *
+ * Passing NULL is a no-op.
+ */
+void xet_free_xorb_check_result(XetXorbCheckResult *result);
 
 #ifdef __cplusplus
 } /* extern "C" */

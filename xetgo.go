@@ -162,3 +162,113 @@ func collectDownloadResults(raw *xet.Xetdownloadresult) ([]string, error) {
 	}
 	return paths, nil
 }
+
+// ChunkInfo describes a single content-defined chunk produced by the xet
+// chunking algorithm.
+type ChunkInfo struct {
+	// Hash is the Xet chunk hash (hex string).
+	Hash string
+	// Size is the chunk size in bytes.
+	Size uint64
+}
+
+// ChunkBytes splits data into content-defined chunks.
+//
+// Returns one ChunkInfo per chunk, in order.  An empty slice is returned for
+// empty input.
+func ChunkBytes(data []byte) ([]ChunkInfo, error) {
+	raw, err := xet.ChunkBytes(data)
+	if err != nil {
+		return nil, err
+	}
+	return convertChunkInfos(raw), nil
+}
+
+// ChunkFile splits the file at filePath into content-defined chunks.
+//
+// Returns one ChunkInfo per chunk, in the order they appear in the file.
+func ChunkFile(filePath string) ([]ChunkInfo, error) {
+	raw, err := xet.ChunkFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+	return convertChunkInfos(raw), nil
+}
+
+// ComputeChunkHash computes the Xet chunk hash of raw bytes.
+func ComputeChunkHash(data []byte) (string, error) {
+	return xet.ComputeChunkHash(data)
+}
+
+// ComputeXorbHash computes the xorb hash from an ordered list of chunk infos.
+func ComputeXorbHash(chunks []ChunkInfo) (string, error) {
+	return xet.ComputeXorbHash(convertToXetChunkInfos(chunks))
+}
+
+// ComputeFileHash computes the file hash from an ordered list of chunk infos.
+func ComputeFileHash(chunks []ChunkInfo) (string, error) {
+	return xet.ComputeFileHash(convertToXetChunkInfos(chunks))
+}
+
+// ComputeRangeHash computes the range hash from an ordered list of chunk
+// hashes (hex strings).
+func ComputeRangeHash(hashes []string) (string, error) {
+	return xet.ComputeRangeHash(hashes)
+}
+
+// XorbCheckResult holds the result of checking an xorb object.
+type XorbCheckResult struct {
+	// XorbHash is the computed xorb hash (hex string).
+	XorbHash string
+	// Chunks holds the per-chunk hashes and sizes.
+	Chunks []ChunkInfo
+	// TotalBytes is the total uncompressed data size of the xorb in bytes.
+	TotalBytes uint64
+}
+
+// CheckXorbBytes deserializes an xorb object from bytes, computes its hash,
+// and returns chunk information.
+func CheckXorbBytes(data []byte) (*XorbCheckResult, error) {
+	raw, err := xet.CheckXorbBytes(data)
+	if err != nil {
+		return nil, err
+	}
+	return convertXorbCheckResult(raw), nil
+}
+
+// CheckXorbFile deserializes an xorb object from the file at filePath,
+// computes its hash, and returns chunk information.
+func CheckXorbFile(filePath string) (*XorbCheckResult, error) {
+	raw, err := xet.CheckXorbFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+	return convertXorbCheckResult(raw), nil
+}
+
+// convertChunkInfos converts xet.ChunkInfo values to xetgo.ChunkInfo values.
+func convertChunkInfos(raw []xet.ChunkInfo) []ChunkInfo {
+	out := make([]ChunkInfo, len(raw))
+	for i, c := range raw {
+		out[i] = ChunkInfo{Hash: c.Hash, Size: c.Size}
+	}
+	return out
+}
+
+// convertToXetChunkInfos converts xetgo.ChunkInfo values to xet.ChunkInfo values.
+func convertToXetChunkInfos(chunks []ChunkInfo) []xet.ChunkInfo {
+	out := make([]xet.ChunkInfo, len(chunks))
+	for i, c := range chunks {
+		out[i] = xet.ChunkInfo{Hash: c.Hash, Size: c.Size}
+	}
+	return out
+}
+
+// convertXorbCheckResult converts a *xet.XorbCheckResult to *xetgo.XorbCheckResult.
+func convertXorbCheckResult(raw *xet.XorbCheckResult) *XorbCheckResult {
+	return &XorbCheckResult{
+		XorbHash:   raw.XorbHash,
+		Chunks:     convertChunkInfos(raw.Chunks),
+		TotalBytes: raw.TotalBytes,
+	}
+}
