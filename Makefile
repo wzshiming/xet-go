@@ -1,14 +1,28 @@
 # Makefile for xet-go
 #
 # Targets:
-#   generate  — Re-generate CGo bindings using c-for-go.
-#   build     — Build all packages.
-#   test      — Run all tests.
-#   clean     — Remove generated artefacts.
+#   rust-build        — Build the xet-sys Rust static library (release).
+#   rust-build-debug  — Build the xet-sys Rust static library (debug).
+#   generate          — Re-generate CGo bindings using c-for-go.
+#   build             — Build the Rust static library then all Go packages.
+#   test              — Build the Rust static library then run all Go tests.
+#   clean             — Remove all build artefacts.
 
-.PHONY: all generate build test clean
+.PHONY: all rust-build rust-build-debug generate build test clean
+
+CARGO_MANIFEST := xet-sys/Cargo.toml
 
 all: build
+
+# ---------------------------------------------------------------------------
+# Rust static library
+# ---------------------------------------------------------------------------
+
+rust-build:
+	cargo build --release --manifest-path $(CARGO_MANIFEST)
+
+rust-build-debug:
+	cargo build --manifest-path $(CARGO_MANIFEST)
 
 # ---------------------------------------------------------------------------
 # Regenerate CGo bindings
@@ -24,12 +38,21 @@ generate:
 		rm -rf hf_xet/hf_xet; \
 	fi
 
-build:
+# ---------------------------------------------------------------------------
+# Go build / test (depend on the Rust library being present)
+# ---------------------------------------------------------------------------
+
+build: rust-build
 	go build ./...
 
-test:
+test: rust-build
 	go test ./...
 
+# ---------------------------------------------------------------------------
+# Clean
+# ---------------------------------------------------------------------------
+
 clean:
+	cargo clean --manifest-path $(CARGO_MANIFEST)
 	rm -f hf_xet/hf_xet.go hf_xet/types.go hf_xet/doc.go \
 	      hf_xet/cgo_helpers.go hf_xet/cgo_helpers.h

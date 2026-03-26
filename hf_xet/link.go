@@ -3,24 +3,31 @@
 //
 // # Linking
 //
-// This package requires the hf_xet native shared library to be available at
-// link time and at runtime.  Set the CGO_LDFLAGS and CGO_CFLAGS environment
-// variables (or install the library system-wide) before building.
+// The native implementation is compiled from the Rust crate in xet-sys/ into
+// a static library (libxet_sys.a).  Build it before using this package:
 //
-// Example:
+//	make rust-build          # release build (recommended)
+//	make rust-build-debug    # debug build
 //
-//	export CGO_LDFLAGS="-L/path/to/hf_xet/lib -lhf_xet"
-//	export CGO_CFLAGS="-I/path/to/hf_xet/include"
-//	go build ./...
+// Or directly with Cargo:
 //
-// On Linux the runtime linker also needs to find the shared library, either
-// via LD_LIBRARY_PATH or by installing it under a path known to ldconfig.
+//	cargo build --release --manifest-path xet-sys/Cargo.toml
+//
+// The CGo flags below link against the release artefact.  To use a debug
+// build, set CGO_LDFLAGS to point at the debug output directory instead:
+//
+//	export CGO_LDFLAGS="-L$(pwd)/xet-sys/target/debug -lxet_sys"
 
 package hf_xet
 
 /*
-#cgo linux   LDFLAGS: -lhf_xet
-#cgo darwin  LDFLAGS: -lhf_xet
-#cgo windows LDFLAGS: -lhf_xet
+// Link the Rust static library.
+// ${SRCDIR} is resolved by CGo to the directory containing this file (hf_xet/).
+#cgo LDFLAGS: -L${SRCDIR}/../xet-sys/target/release -lxet_sys
+
+// System libraries required by the Rust runtime and xet-core on each platform.
+#cgo linux   LDFLAGS: -ldl -lm -lpthread -lrt
+#cgo darwin  LDFLAGS: -framework Security -framework CoreFoundation
+#cgo windows LDFLAGS: -lws2_32 -luserenv -lbcrypt -lntdll
 */
 import "C"
