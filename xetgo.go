@@ -75,7 +75,7 @@ type ChunkInfo struct {
 // filePaths must not be empty.  The returned slice has the same length as
 // filePaths with one UploadResult per file, in the same order.
 func HashFiles(filePaths []string) ([]UploadResult, error) {
-	raw := xet.HashFiles(filePaths, uint64(len(filePaths)))
+	raw := xet.HashFiles(safeStrings[string, string](filePaths), uint64(len(filePaths)))
 	if raw == nil {
 		return nil, errors.New("xetgo: HashFiles returned nil result")
 	}
@@ -100,7 +100,7 @@ func UploadFiles(filePaths []string, endpoint string, token *TokenInfo, sha256s 
 	if skipSHA256 {
 		skip = 1
 	}
-	raw := xet.UploadFiles(filePaths, uint64(len(filePaths)), endpoint, ti, sha256s, uint64(len(sha256s)), skip)
+	raw := xet.UploadFiles(safeStrings[string, string](filePaths), uint64(len(filePaths)), safeString[string, string](endpoint), ti, safeStrings[string, string](sha256s), uint64(len(sha256s)), skip)
 	if raw == nil {
 		return nil, errors.New("xetgo: UploadFiles returned nil result")
 	}
@@ -119,13 +119,13 @@ func DownloadFiles(files []DownloadRequest, endpoint string, token *TokenInfo) (
 	infos := make([]xet.Xetdownloadinfo, len(files))
 	for i, f := range files {
 		infos[i] = xet.Xetdownloadinfo{
-			DestinationPath: []byte(f.DestinationPath),
-			Hash:            []byte(f.Hash),
+			DestinationPath: safeString[string, []byte](f.DestinationPath),
+			Hash:            safeString[string, []byte](f.Hash),
 			FileSize:        f.FileSize,
 		}
 	}
 	ti := toRawTokenInfo(token)
-	raw := xet.DownloadFiles(infos, uint64(len(infos)), endpoint, ti)
+	raw := xet.DownloadFiles(infos, uint64(len(infos)), safeString[string, string](endpoint), ti)
 	if raw == nil {
 		return nil, errors.New("xetgo: DownloadFiles returned nil result")
 	}
@@ -140,7 +140,7 @@ func toRawTokenInfo(token *TokenInfo) *xet.Xettokeninfo {
 		return nil
 	}
 	return &xet.Xettokeninfo{
-		Token:  []byte(token.Token),
+		Token:  safeString[string, []byte](token.Token),
 		Expiry: token.Expiry,
 	}
 }
@@ -224,7 +224,7 @@ func ComputeXorbHash(chunks []ChunkInfo) (string, error) {
 	infos := make([]xet.Xetchunkinfo, len(chunks))
 	for i, c := range chunks {
 		infos[i] = xet.Xetchunkinfo{
-			Hash: []byte(c.Hash),
+			Hash: safeString[string, []byte](c.Hash),
 			Size: c.Size,
 		}
 	}
@@ -252,4 +252,23 @@ func collectChunkResults(raw *xet.Xetchunkresult) ([]ChunkInfo, error) {
 		}
 	}
 	return chunks, nil
+}
+
+// safeString ensures that the string is NULL-terminated, a NULL-terminated copy is created otherwise.
+func safeString[I string | []byte, O string | []byte](str I) O {
+	if len(str) == 0 || str[len(str)-1] == 0 {
+		return O(str)
+	}
+	safe := make([]byte, len(str)+1)
+	copy(safe, str)
+	safe[len(safe)-1] = 0
+	return O(safe)
+}
+
+func safeStrings[I string | []byte, O string | []byte](strs []I) []O {
+	safe := make([]O, len(strs))
+	for i, s := range strs {
+		safe[i] = safeString[I, O](s)
+	}
+	return safe
 }
