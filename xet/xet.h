@@ -18,222 +18,224 @@
 #include <stdint.h>
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-/* -------------------------------------------------------------------------
- * Common types
- * ---------------------------------------------------------------------- */
+    /* -------------------------------------------------------------------------
+     * Common types
+     * ---------------------------------------------------------------------- */
 
-/** Authentication token paired with its UNIX-epoch expiry time (seconds). */
-typedef struct XetTokenInfo {
-    const char *token;  /**< Bearer token string (NUL-terminated). */
-    uint64_t    expiry; /**< Token expiry as UNIX epoch seconds (0 = no expiry). */
-} XetTokenInfo;
+    /** Authentication token paired with its UNIX-epoch expiry time (seconds). */
+    typedef struct XetTokenInfo
+    {
+        const char *token; /**< Bearer token string (NUL-terminated). */
+        uint64_t expiry;   /**< Token expiry as UNIX epoch seconds (0 = no expiry). */
+    } XetTokenInfo;
 
-/** Metadata returned for each successfully uploaded or hashed file. */
-typedef struct XetUploadInfo {
-    const char *hash;      /**< Xet content-hash (hex string, NUL-terminated). */
-    uint64_t    file_size; /**< File size in bytes. */
-    const char *sha256;    /**< SHA-256 hex digest, or NULL if not computed. */
-} XetUploadInfo;
+    /** Metadata returned for each successfully uploaded or hashed file. */
+    typedef struct XetUploadInfo
+    {
+        const char *hash;   /**< Xet content-hash (hex string, NUL-terminated). */
+        uint64_t file_size; /**< File size in bytes. */
+        const char *sha256; /**< SHA-256 hex digest, or NULL if not computed. */
+    } XetUploadInfo;
 
-/**
- * A batch upload / hash result.
- *
- * On success  : error == NULL, items points to an array of @p count elements.
- * On failure  : error != NULL, items may be NULL.
- */
-typedef struct XetUploadResult {
-    XetUploadInfo *items; /**< Array of per-file upload metadata (may be NULL on error). */
-    size_t         count; /**< Number of elements in @p items. */
-    const char    *error; /**< Human-readable error string, or NULL on success. */
-} XetUploadResult;
+    /**
+     * A batch upload / hash result.
+     *
+     * On success  : error == NULL, items points to an array of @p count elements.
+     * On failure  : error != NULL, items may be NULL.
+     */
+    typedef struct XetUploadResult
+    {
+        XetUploadInfo *items; /**< Array of per-file upload metadata (may be NULL on error). */
+        size_t count;         /**< Number of elements in @p items. */
+        const char *error;    /**< Human-readable error string, or NULL on success. */
+    } XetUploadResult;
 
-/** Input descriptor for a single file to download. */
-typedef struct XetDownloadInfo {
-    const char *destination_path; /**< Local filesystem path for the downloaded file. */
-    const char *hash;             /**< Xet content-hash to fetch (hex string). */
-    int64_t     file_size;        /**< Expected size in bytes, or -1 if unknown. */
-} XetDownloadInfo;
+    /** Input descriptor for a single file to download. */
+    typedef struct XetDownloadInfo
+    {
+        const char *destination_path; /**< Local filesystem path for the downloaded file. */
+        const char *hash;             /**< Xet content-hash to fetch (hex string). */
+        int64_t file_size;            /**< Expected size in bytes, or -1 if unknown. */
+    } XetDownloadInfo;
 
-/**
- * A batch download result.
- *
- * On success  : error == NULL, paths points to an array of @p count C strings.
- * On failure  : error != NULL, paths may be NULL.
- */
-typedef struct XetDownloadResult {
-    char       **paths; /**< Array of destination paths for downloaded files. */
-    size_t       count; /**< Number of elements in @p paths. */
-    const char  *error; /**< Human-readable error string, or NULL on success. */
-} XetDownloadResult;
+    /**
+     * A batch download result.
+     *
+     * On success  : error == NULL, paths points to an array of @p count C strings.
+     * On failure  : error != NULL, paths may be NULL.
+     */
+    typedef struct XetDownloadResult
+    {
+        char **paths;      /**< Array of destination paths for downloaded files. */
+        size_t count;      /**< Number of elements in @p paths. */
+        const char *error; /**< Human-readable error string, or NULL on success. */
+    } XetDownloadResult;
 
-/* -------------------------------------------------------------------------
- * Upload functions
- * ---------------------------------------------------------------------- */
+    /* -------------------------------------------------------------------------
+     * Upload functions
+     * ---------------------------------------------------------------------- */
 
-/**
- * Upload files specified by path to HuggingFace Xet storage.
- *
- * @param file_paths   NULL-terminated array of NUL-terminated UTF-8 file paths.
- * @param file_count   Number of entries in @p file_paths.
- * @param endpoint     CAS endpoint URL (NUL-terminated), or NULL for default.
- * @param token_info   Authentication token, or NULL for unauthenticated access.
- * @param sha256s      Optional pre-computed SHA-256 hex digests; one per file,
- *                     or NULL to compute them automatically.
- * @param sha256_count Number of entries in @p sha256s (must equal @p file_count
- *                     when @p sha256s is non-NULL, and 0 when @p sha256s is NULL).
- * @param skip_sha256  Non-zero to skip SHA-256 verification entirely.
- *                     Mutually exclusive with non-NULL @p sha256s.
- * @return Heap-allocated XetUploadResult; caller must free with xet_free_upload_result().
- */
-XetUploadResult *xet_upload_files(
-    const char    **file_paths,
-    size_t          file_count,
-    const char     *endpoint,
-    XetTokenInfo   *token_info,
-    const char    **sha256s,
-    size_t          sha256_count,
-    int             skip_sha256
-);
+    /**
+     * Upload files specified by path to HuggingFace Xet storage.
+     *
+     * @param file_paths   NULL-terminated array of NUL-terminated UTF-8 file paths.
+     * @param file_count   Number of entries in @p file_paths.
+     * @param endpoint     CAS endpoint URL (NUL-terminated), or NULL for default.
+     * @param token_info   Authentication token, or NULL for unauthenticated access.
+     * @param sha256s      Optional pre-computed SHA-256 hex digests; one per file,
+     *                     or NULL to compute them automatically.
+     * @param sha256_count Number of entries in @p sha256s (must equal @p file_count
+     *                     when @p sha256s is non-NULL, and 0 when @p sha256s is NULL).
+     * @param skip_sha256  Non-zero to skip SHA-256 verification entirely.
+     *                     Mutually exclusive with non-NULL @p sha256s.
+     * @return Heap-allocated XetUploadResult; caller must free with xet_free_upload_result().
+     */
+    XetUploadResult *xet_upload_files(
+        const char **file_paths,
+        size_t file_count,
+        const char *endpoint,
+        XetTokenInfo *token_info,
+        const char **sha256s,
+        size_t sha256_count,
+        int skip_sha256);
 
-/* -------------------------------------------------------------------------
- * Hash function
- * ---------------------------------------------------------------------- */
+    /* -------------------------------------------------------------------------
+     * Hash function
+     * ---------------------------------------------------------------------- */
 
-/**
- * Compute Xet content-hashes for local files without uploading.
- *
- * Useful for pre-flight verification or deduplication checks.
- *
- * @param file_paths  NULL-terminated array of NUL-terminated UTF-8 file paths.
- * @param file_count  Number of entries in @p file_paths.
- * @return Heap-allocated XetUploadResult; caller must free with xet_free_upload_result().
- */
-XetUploadResult *xet_hash_files(
-    const char **file_paths,
-    size_t       file_count
-);
+    /**
+     * Compute Xet content-hashes for local files without uploading.
+     *
+     * Useful for pre-flight verification or deduplication checks.
+     *
+     * @param file_paths  NULL-terminated array of NUL-terminated UTF-8 file paths.
+     * @param file_count  Number of entries in @p file_paths.
+     * @return Heap-allocated XetUploadResult; caller must free with xet_free_upload_result().
+     */
+    XetUploadResult *xet_hash_files(
+        const char **file_paths,
+        size_t file_count);
 
-/* -------------------------------------------------------------------------
- * Chunking functions
- * ---------------------------------------------------------------------- */
+    /* -------------------------------------------------------------------------
+     * Chunking functions
+     * ---------------------------------------------------------------------- */
 
-/** Metadata for a single chunk. */
-typedef struct XetChunkInfo {
-    const char *hash;      /**< Chunk hash (hex string, NUL-terminated). */
-    uint64_t    size;      /**< Chunk size in bytes. */
-} XetChunkInfo;
+    /** Metadata for a single chunk. */
+    typedef struct XetChunkInfo
+    {
+        const char *hash; /**< Chunk hash (hex string, NUL-terminated). */
+        uint64_t size;    /**< Chunk size in bytes. */
+    } XetChunkInfo;
 
-/**
- * A chunk result.
- *
- * On success  : error == NULL, items points to an array of @p count elements.
- * On failure  : error != NULL, items may be NULL.
- */
-typedef struct XetChunkResult {
-    XetChunkInfo *items; /**< Array of chunk metadata (may be NULL on error). */
-    size_t        count; /**< Number of elements in @p items. */
-    const char   *error; /**< Human-readable error string, or NULL on success. */
-} XetChunkResult;
+    /**
+     * A chunk result.
+     *
+     * On success  : error == NULL, items points to an array of @p count elements.
+     * On failure  : error != NULL, items may be NULL.
+     */
+    typedef struct XetChunkResult
+    {
+        XetChunkInfo *items; /**< Array of chunk metadata (may be NULL on error). */
+        size_t count;        /**< Number of elements in @p items. */
+        const char *error;   /**< Human-readable error string, or NULL on success. */
+    } XetChunkResult;
 
-/**
- * Chunk raw data into content-addressable chunks.
- *
- * Splits the input data into variable-sized chunks using content-defined chunking
- * and returns the hash and size of each chunk.
- *
- * @param data        Pointer to raw data to chunk.
- * @param data_len    Length of @p data in bytes.
- * @return Heap-allocated XetChunkResult; caller must free with xet_free_chunk_result().
- */
-XetChunkResult *xet_chunk_data(
-    const uint8_t *data,
-    size_t         data_len
-);
+    /**
+     * Chunk raw data into content-addressable chunks.
+     *
+     * Splits the input data into variable-sized chunks using content-defined chunking
+     * and returns the hash and size of each chunk.
+     *
+     * @param data        Pointer to raw data to chunk.
+     * @param data_len    Length of @p data in bytes.
+     * @return Heap-allocated XetChunkResult; caller must free with xet_free_chunk_result().
+     */
+    XetChunkResult *xet_chunk_data(
+        const uint8_t *data,
+        size_t data_len);
 
-/**
- * Compute the hash of a single chunk of data.
- *
- * @param data        Pointer to raw chunk data.
- * @param data_len    Length of @p data in bytes.
- * @return NUL-terminated hex string of the chunk hash; caller must free with xet_free_string().
- *         Returns NULL on error.
- */
-char *xet_hash_chunk(
-    const uint8_t *data,
-    size_t         data_len
-);
+    /**
+     * Compute the hash of a single chunk of data.
+     *
+     * @param data        Pointer to raw chunk data.
+     * @param data_len    Length of @p data in bytes.
+     * @return NUL-terminated hex string of the chunk hash; caller must free with xet_free_string().
+     *         Returns NULL on error.
+     */
+    char *xet_hash_chunk(
+        const uint8_t *data,
+        size_t data_len);
 
-/**
- * Compute the XORB hash from a list of chunk hashes and sizes.
- *
- * The XORB hash is an XOR-based aggregate hash used for efficient verification
- * of file integrity without downloading all chunks.
- *
- * @param chunks      Array of XetChunkInfo descriptors.
- * @param chunk_count Number of entries in @p chunks.
- * @return NUL-terminated hex string of the XORB hash; caller must free with xet_free_string().
- *         Returns NULL on error.
- */
-char *xet_compute_xorb_hash(
-    XetChunkInfo *chunks,
-    size_t        chunk_count
-);
+    /**
+     * Compute the XORB hash from a list of chunk hashes and sizes.
+     *
+     * The XORB hash is an XOR-based aggregate hash used for efficient verification
+     * of file integrity without downloading all chunks.
+     *
+     * @param chunks      Array of XetChunkInfo descriptors.
+     * @param chunk_count Number of entries in @p chunks.
+     * @return NUL-terminated hex string of the XORB hash; caller must free with xet_free_string().
+     *         Returns NULL on error.
+     */
+    char *xet_compute_xorb_hash(
+        XetChunkInfo *chunks,
+        size_t chunk_count);
 
-/* -------------------------------------------------------------------------
- * Download function
- * ---------------------------------------------------------------------- */
+    /* -------------------------------------------------------------------------
+     * Download function
+     * ---------------------------------------------------------------------- */
 
-/**
- * Download files from HuggingFace Xet storage to the local filesystem.
- *
- * @param files       Array of XetDownloadInfo descriptors.
- * @param file_count  Number of entries in @p files.
- * @param endpoint    CAS endpoint URL (NUL-terminated), or NULL for default.
- * @param token_info  Authentication token, or NULL for unauthenticated access.
- * @return Heap-allocated XetDownloadResult; caller must free with xet_free_download_result().
- */
-XetDownloadResult *xet_download_files(
-    XetDownloadInfo *files,
-    size_t           file_count,
-    const char      *endpoint,
-    XetTokenInfo    *token_info
-);
+    /**
+     * Download files from HuggingFace Xet storage to the local filesystem.
+     *
+     * @param files       Array of XetDownloadInfo descriptors.
+     * @param file_count  Number of entries in @p files.
+     * @param endpoint    CAS endpoint URL (NUL-terminated), or NULL for default.
+     * @param token_info  Authentication token, or NULL for unauthenticated access.
+     * @return Heap-allocated XetDownloadResult; caller must free with xet_free_download_result().
+     */
+    XetDownloadResult *xet_download_files(
+        XetDownloadInfo *files,
+        size_t file_count,
+        const char *endpoint,
+        XetTokenInfo *token_info);
 
-/* -------------------------------------------------------------------------
- * Memory management
- * ---------------------------------------------------------------------- */
+    /* -------------------------------------------------------------------------
+     * Memory management
+     * ---------------------------------------------------------------------- */
 
-/**
- * Release a XetUploadResult previously returned by xet_upload_files(),
- * xet_upload_bytes(), or xet_hash_files().
- *
- * Passing NULL is a no-op.
- */
-void xet_free_upload_result(XetUploadResult *result);
+    /**
+     * Release a XetUploadResult previously returned by xet_upload_files(),
+     * xet_upload_bytes(), or xet_hash_files().
+     *
+     * Passing NULL is a no-op.
+     */
+    void xet_free_upload_result(XetUploadResult *result);
 
-/**
- * Release a XetDownloadResult previously returned by xet_download_files().
- *
- * Passing NULL is a no-op.
- */
-void xet_free_download_result(XetDownloadResult *result);
+    /**
+     * Release a XetDownloadResult previously returned by xet_download_files().
+     *
+     * Passing NULL is a no-op.
+     */
+    void xet_free_download_result(XetDownloadResult *result);
 
-/**
- * Release a XetChunkResult previously returned by xet_chunk_data().
- *
- * Passing NULL is a no-op.
- */
-void xet_free_chunk_result(XetChunkResult *result);
+    /**
+     * Release a XetChunkResult previously returned by xet_chunk_data().
+     *
+     * Passing NULL is a no-op.
+     */
+    void xet_free_chunk_result(XetChunkResult *result);
 
-/**
- * Release a string previously returned by xet_hash_chunk() or xet_compute_xorb_hash().
- *
- * Passing NULL is a no-op.
- */
-void xet_free_string(char *str);
+    /**
+     * Release a string previously returned by xet_hash_chunk() or xet_compute_xorb_hash().
+     *
+     * Passing NULL is a no-op.
+     */
+    void xet_free_string(char *str);
 
 #ifdef __cplusplus
 } /* extern "C" */
