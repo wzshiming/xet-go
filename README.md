@@ -14,6 +14,15 @@ Pre-built static libraries for all supported platforms are committed to the
 [`libs/`](libs/) directory, so **no Rust or Cargo installation is needed** to
 build Go programs that import this package.
 
+## Features
+
+- **File Upload & Download**: Upload and download files to/from HuggingFace Xet storage
+- **Content Hashing**: Compute Xet content-addressable hashes for files
+- **Content-Defined Chunking**: Split data into variable-sized chunks
+- **XORB Hashing**: Compute XOR-based aggregate hashes for efficient integrity verification
+
+For details on XORB support, see [XORB.md](XORB.md).
+
 ## Usage
 
 ```sh
