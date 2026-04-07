@@ -26,11 +26,11 @@ package xet
 // ${SRCDIR} is resolved by CGo to the directory containing this file (xet/).
 // The pre-built library (libs/) is searched first; the Cargo release output
 // (xet-sys/target/release/) is the fallback for local Rust development.
-#cgo linux,amd64   LDFLAGS: -L${SRCDIR}/../libs/linux/amd64   -L${SRCDIR}/../xet-sys/target/release -lxet_sys
-#cgo linux,arm64   LDFLAGS: -L${SRCDIR}/../libs/linux/arm64   -L${SRCDIR}/../xet-sys/target/release -lxet_sys
-#cgo darwin,amd64  LDFLAGS: -L${SRCDIR}/../libs/darwin/amd64  -L${SRCDIR}/../xet-sys/target/release -lxet_sys
-#cgo darwin,arm64  LDFLAGS: -L${SRCDIR}/../libs/darwin/arm64  -L${SRCDIR}/../xet-sys/target/release -lxet_sys
-#cgo windows,amd64 LDFLAGS: -L${SRCDIR}/../libs/windows/amd64 -L${SRCDIR}/../xet-sys/target/release -lxet_sys
+#cgo linux,amd64   LDFLAGS: -L${SRCDIR}/../libs/linux/amd64
+#cgo linux,arm64   LDFLAGS: -L${SRCDIR}/../libs/linux/arm64
+#cgo darwin,amd64  LDFLAGS: -L${SRCDIR}/../libs/darwin/amd64
+#cgo darwin,arm64  LDFLAGS: -L${SRCDIR}/../libs/darwin/arm64
+#cgo windows,amd64 LDFLAGS: -L${SRCDIR}/../libs/windows/amd64
 
 // System libraries required by the Rust runtime and xet-core on each platform.
 #cgo linux   LDFLAGS: -ldl -lm -lpthread -lrt
