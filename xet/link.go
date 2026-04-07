@@ -24,8 +24,8 @@ package xet
 /*
 // Link the Rust static library.
 // ${SRCDIR} is resolved by CGo to the directory containing this file (xet/).
-// The pre-built library (libs/) is searched first; the Cargo release output
-// (xet-sys/target/release/) is the fallback for local Rust development.
+// The pre-built library (libs/) is searched first;
+#cgo LDFLAGS: -lxet_sys
 #cgo linux,amd64   LDFLAGS: -L${SRCDIR}/../libs/linux/amd64
 #cgo linux,arm64   LDFLAGS: -L${SRCDIR}/../libs/linux/arm64
 #cgo darwin,amd64  LDFLAGS: -L${SRCDIR}/../libs/darwin/amd64
