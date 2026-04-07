@@ -34,7 +34,7 @@ package xet
 
 // System libraries required by the Rust runtime and xet-core on each platform.
 #cgo linux   LDFLAGS: -ldl -lm -lpthread -lrt
-#cgo darwin  LDFLAGS: -framework Security -framework CoreFoundation -framework IOKit -framework SystemConfiguration
+#cgo darwin  LDFLAGS: -mmacosx-version-min=26.2 -framework Security -framework CoreFoundation -framework IOKit -framework SystemConfiguration
 #cgo windows LDFLAGS: -lws2_32 -luserenv -lbcrypt -lntdll
 */
 import "C"
